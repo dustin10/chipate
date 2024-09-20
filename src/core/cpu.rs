@@ -12,11 +12,11 @@ struct Stack {
 }
 
 impl Stack {
-    fn push(&self, address: u16) {
-        todo!()
+    fn push(&mut self, address: u16) {
+        self.data.push(address);
     }
-    fn pop(&mut self) -> u16 {
-        todo!()
+    fn pop(&mut self) -> Option<u16> {
+        self.data.pop()
     }
 }
 
@@ -24,6 +24,12 @@ impl Stack {
 enum Instruction {
     ClearScreen,
     Jump,
+}
+
+impl Instruction {
+    fn from_op_code(op_code: u16) -> Option<Instruction> {
+        todo!()
+    }
 }
 
 #[derive(Debug)]
@@ -54,7 +60,6 @@ impl CPU {
         let low = self.memory.read(self.prog_counter) as u16;
         let high = self.memory.read(self.prog_counter + 1) as u16;
 
-        // TODO: use wrapping_add instead?
         self.prog_counter += 2;
 
         low << 8 | high

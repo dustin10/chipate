@@ -5,7 +5,7 @@ version = "0.1.0"
 authors = ["Dustin Dobervich <ddobervich@gmail.com>"]
 edition = "2021"
 readme = "README.md"
-repository = "https://github.com/dustin10/chip-8-emu"
+repository = "https://github.com/dustin10/chipate"
 rust-version = "1.81"
 
 [dependencies]

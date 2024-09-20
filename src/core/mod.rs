@@ -1,10 +1,13 @@
+use crate::core::memory::RAM;
+
 use anyhow::Context;
-use cpu::CPU;
 use std::{fs::read, path::Path};
 
 pub mod cpu;
 pub mod gfx;
 pub mod memory;
+
+const PROGRAM_START_ADDR: u16 = 0x200;
 
 #[derive(Debug)]
 pub struct Program {
@@ -12,11 +15,14 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn load_from_file(path: impl AsRef<Path>) -> anyhow::Result<Self> {
+    pub fn new(path: impl AsRef<Path>) -> anyhow::Result<Self> {
         tracing::debug!("loading program from path {:?}", path.as_ref());
 
-        let data = std::fs::read(path).context("failed to load CHIP-8 program from disk")?;
+        let data = std::fs::read(path)?;
 
         Ok(Self { data })
+    }
+    pub fn load(&self, memory: &mut RAM) {
+        memory.write_block(PROGRAM_START_ADDR, &self.data);
     }
 }

@@ -1,6 +1,11 @@
 #![allow(unused)]
 
-use crate::core::{cpu::CPU, gfx::Display, Program};
+use crate::core::{
+    cpu::CPU,
+    gfx::{Display, Font},
+    memory::RAM,
+    Program,
+};
 
 pub mod core;
 
@@ -12,10 +17,15 @@ pub struct Emu {
 }
 
 impl Emu {
-    pub fn init_with_program(program: Program) -> Self {
+    pub fn new(program: Program) -> Self {
+        let mut memory = RAM::new();
+
+        Font::load(&mut memory);
+        program.load(&mut memory);
+
         Self {
             program,
-            cpu: CPU::new(),
+            cpu: CPU::new(memory),
             display: Display::new(),
         }
     }

@@ -29,9 +29,8 @@ fn main() -> anyhow::Result<()> {
 
     let args = Args::try_parse().context("failed to parse command line arguments")?;
 
-    let program = Program::load_from_file(args.file)?;
-
-    let emu = Emu::init_with_program(program);
+    let program = Program::new(args.file).context("failed to load program from file")?;
+    let emu = Emu::new(program);
 
     println!("{:?}", emu);
 

@@ -1,5 +1,5 @@
 use anyhow::Context;
-use chipate::{core::Program, Emu};
+use chipate::{core::{gfx::Font, Program}, Emu};
 use clap::Parser;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -30,7 +30,9 @@ fn main() -> anyhow::Result<()> {
     let args = Args::try_parse().context("failed to parse command line arguments")?;
 
     let program = Program::new(args.file).context("failed to load program from file")?;
-    let emu = Emu::new(program);
+    let font = Font::default();
+
+    let emu = Emu::new(program, font);
 
     println!("{:?}", emu);
 

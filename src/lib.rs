@@ -14,19 +14,24 @@ pub struct Emu {
     program: Program,
     cpu: CPU,
     display: Display,
+    font: Font,
 }
 
 impl Emu {
-    pub fn new(program: Program) -> Self {
+    pub fn new(program: Program, font: Font) -> Self {
         let mut memory = RAM::new();
 
-        Font::load(&mut memory);
         program.load(&mut memory);
+        tracing::debug!("loaded program into memory");
+
+        font.load(&mut memory);
+        tracing::debug!("loaded font into memory");
 
         Self {
             program,
             cpu: CPU::new(memory),
             display: Display::new(),
+            font,
         }
     }
 }

@@ -13,6 +13,9 @@ impl Display {
     pub fn new() -> Self {
         Self::default()
     }
+    pub fn clear(&mut self) {
+        self.pixels.fill(0);
+    }
 }
 
 impl Default for Display {
@@ -33,11 +36,15 @@ const DEFAULT_FONT_DATA: [u8; 80] = [
     0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0, 0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80,
 ];
 
-#[derive(Default)]
-pub struct Font;
+#[derive(Debug, Default)]
+pub struct Font {
+}
 
 impl Font {
-    pub fn load(memory: &mut RAM) {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn load(&self, memory: &mut RAM) {
         memory.write_block(0x050, &DEFAULT_FONT_DATA);
     }
 }

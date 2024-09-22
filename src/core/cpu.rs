@@ -1,12 +1,12 @@
 use crate::core::memory::RAM;
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 struct Registers {
     vs: [u8; 16],
     l: u16,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 struct Stack {
     data: Vec<u16>,
 }
@@ -28,11 +28,11 @@ enum Instruction {
 
 impl Instruction {
     fn from_op_code(op_code: u16) -> Option<Instruction> {
-        todo!()
+        None
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CPU {
     registers: Registers,
     memory: RAM,
@@ -53,8 +53,13 @@ impl CPU {
             sound_timer: 0,
         }
     }
-    pub fn execute(&mut self) {
-        let instruction = self.fetch();
+    pub fn tick(&mut self) {
+        let op_code = self.fetch();
+
+        match Instruction::from_op_code(op_code) {
+            None => tracing::warn!("enountered unknown op code: {:X?}", op_code),
+            Some(instruction) => self.execute(instruction),
+        }
     }
     fn fetch(&mut self) -> u16 {
         let low = self.memory.read(self.prog_counter) as u16;
@@ -63,6 +68,9 @@ impl CPU {
         self.prog_counter += 2;
 
         low << 8 | high
+    }
+    fn execute(&mut self, instruction: Instruction) {
+        todo!()
     }
 }
 

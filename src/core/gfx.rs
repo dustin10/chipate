@@ -4,7 +4,7 @@ const WINDOW_PIXELS_WIDTH: u8 = 64;
 
 const WINDOW_PIXELS_HEIGHT: u8 = 32;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Display {
     pixels: [u8; 256],
 }
@@ -28,6 +28,8 @@ const FONT_GLYPH_WIDTH: u8 = 4;
 
 const FONT_GLYPH_HEIGHT: u8 = 5;
 
+const FONT_START_ADDR: u16 = 0x050;
+
 const DEFAULT_FONT_DATA: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70, 0xF0, 0x10, 0xF0, 0x80, 0xF0, 0xF0,
     0x10, 0xF0, 0x10, 0xF0, 0x90, 0x90, 0xF0, 0x10, 0x10, 0xF0, 0x80, 0xF0, 0x10, 0xF0, 0xF0, 0x80,
@@ -36,15 +38,26 @@ const DEFAULT_FONT_DATA: [u8; 80] = [
     0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0, 0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80,
 ];
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Font {
+    pub name: String,
+    data: [u8; 80],
 }
 
 impl Font {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(name: String, data: [u8; 80]) -> Self {
+        Self {
+            name,
+            data
+        }
     }
     pub fn load(&self, memory: &mut RAM) {
-        memory.write_block(0x050, &DEFAULT_FONT_DATA);
+        memory.write_block(FONT_START_ADDR, &self.data);
+    }
+}
+
+impl Default for Font {
+    fn default() -> Self {
+        Self::new(String::from("Default"), DEFAULT_FONT_DATA)
     }
 }

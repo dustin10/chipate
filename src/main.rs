@@ -5,10 +5,13 @@ use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command()]
 struct Args {
     #[arg(short, long)]
-    file: String,
+    rom: String,
+    #[arg(short, long, default_value_t = 700)]
+    instructions_per_second: u16,
+
 }
 
 fn main() -> anyhow::Result<()> {
@@ -27,14 +30,10 @@ fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let args = Args::try_parse().context("failed to parse command line arguments")?;
+    let args = Args::parse();
 
-    let program = Program::new(args.file).context("failed to load program from file")?;
+    let program = Program::from_file(args.rom).context("failed to load program rom file")?;
     let font = Font::default();
 
-    let emu = Emu::new(program, font);
-
-    println!("{:?}", emu);
-
-    Ok(())
+    Emu::new(args.instructions_per_second, program, font).run()
 }

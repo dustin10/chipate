@@ -32,10 +32,9 @@ impl Instruction {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CPU {
     registers: Registers,
-    memory: RAM,
     prog_counter: u16,
     stack: Stack,
     delay_timer: u8,
@@ -43,27 +42,26 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub fn new(memory: RAM) -> Self {
+    pub fn new() -> Self {
         Self {
             registers: Registers::default(),
-            memory,
             prog_counter: 0,
             stack: Stack::default(),
             delay_timer: 0,
             sound_timer: 0,
         }
     }
-    pub fn tick(&mut self) {
-        let op_code = self.fetch();
+    pub fn tick(&mut self, memory: &mut RAM) {
+        let op_code = self.fetch(memory);
 
         match Instruction::from_op_code(op_code) {
             None => tracing::warn!("enountered unknown op code: {:X?}", op_code),
             Some(instruction) => self.execute(instruction),
         }
     }
-    fn fetch(&mut self) -> u16 {
-        let low = self.memory.read(self.prog_counter) as u16;
-        let high = self.memory.read(self.prog_counter + 1) as u16;
+    fn fetch(&mut self, memory: &mut RAM) -> u16 {
+        let low = memory.read(self.prog_counter) as u16;
+        let high = memory.read(self.prog_counter + 1) as u16;
 
         self.prog_counter += 2;
 
@@ -71,11 +69,5 @@ impl CPU {
     }
     fn execute(&mut self, instruction: Instruction) {
         todo!()
-    }
-}
-
-impl Default for CPU {
-    fn default() -> Self {
-        Self::new(RAM::default())
     }
 }

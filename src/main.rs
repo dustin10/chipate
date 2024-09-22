@@ -1,5 +1,8 @@
 use anyhow::Context;
-use chipate::{core::{gfx::Font, Program}, Emu};
+use chipate::{
+    core::{gfx::Font, Program},
+    Config, Emu,
+};
 use clap::Parser;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
@@ -11,7 +14,6 @@ struct Args {
     rom: String,
     #[arg(short, long, default_value_t = 700)]
     instructions_per_second: u16,
-
 }
 
 fn main() -> anyhow::Result<()> {
@@ -32,8 +34,14 @@ fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let program = Program::from_file(args.rom).context("failed to load program rom file")?;
-    let font = Font::default();
+    let config = Config {
+        instructions_per_sec: args.instructions_per_second,
+        font: Font::default(),
+    };
 
-    Emu::new(args.instructions_per_second, program, font).run()
+    let program = Program::from_file(args.rom).context("failed to load program rom file")?;
+
+    let mut emu = Emu::new(config);
+    emu.load_program(program);
+    emu.run()
 }

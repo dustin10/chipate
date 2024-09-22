@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use std::time::Instant;
+pub mod core;
 
 use crate::core::{
     cpu::CPU,
@@ -9,39 +9,45 @@ use crate::core::{
     Program,
 };
 
-pub mod core;
+use std::time::Instant;
+
+#[derive(Clone, Debug)]
+pub struct Config {
+    pub instructions_per_sec: u16,
+    pub font: Font,
+}
 
 #[derive(Clone, Debug)]
 pub struct Emu {
-    ips: u16,
-    program: Program,
+    config: Config,
     cpu: CPU,
+    memory: RAM,
     display: Display,
-    font: Font,
 }
 
 impl Emu {
-    pub fn new(ips: u16, program: Program, font: Font) -> Self {
+    pub fn new(config: Config) -> Self {
         let mut memory = RAM::new();
 
-        program.load(&mut memory);
-        tracing::debug!("loaded {} program into memory", program.name);
-
-        font.load(&mut memory);
-        tracing::debug!("loaded {} font into memory", font.name);
+        config.font.load(&mut memory);
+        tracing::debug!("loaded {} font into memory", config.font.name);
 
         Self {
-            ips,
-            program,
-            cpu: CPU::new(memory),
+            config,
+            cpu: CPU::default(),
+            memory,
             display: Display::new(),
-            font,
         }
+    }
+    pub fn load_program(&mut self, program: Program) {
+        program.load(&mut self.memory);
+        tracing::debug!("loaded {} program into memory", program.name);
     }
     pub fn run(&mut self) -> anyhow::Result<()> {
         let mut curr_time = Instant::now();
 
-        self.cpu.tick();
+        self.cpu.tick(&mut self.memory);
+
         Ok(())
     }
 }

@@ -56,9 +56,29 @@ impl Emu {
                 self.cpu.tick(&mut self.memory, &mut self.display);
 
                 last_instant = Instant::now();
+
+                print_display_state(&self.display);
             }
         }
 
         Ok(())
     }
+}
+
+fn print_display_state(display: &Display) {
+    let mut grid = String::new();
+    for r in 0..32 {
+        grid.push('\n');
+        for c in 0..64 {
+            let idx = r as u16 * 64 + c as u16;
+
+            let white = display.read_pixel(idx);
+            if white {
+                grid.push('\u{2588}');
+            } else {
+                grid.push(' ');
+            }
+        }
+    }
+    println!("{}", grid);
 }

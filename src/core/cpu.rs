@@ -159,7 +159,7 @@ impl CPU {
 
         match Instruction::from_op_code(op_code) {
             None => tracing::warn!("unknown op code: {:#04x}", op_code),
-            Some(instruction) => self.execute(instruction, display),
+            Some(instruction) => self.execute(instruction, memory, display),
         }
     }
     fn fetch(&mut self, memory: &mut RAM) -> u16 {
@@ -170,13 +170,15 @@ impl CPU {
 
         (high << 8) | low
     }
-    fn execute(&mut self, instruction: Instruction, display: &mut Display) {
+    fn execute(&mut self, instruction: Instruction, memory: &mut RAM, display: &mut Display) {
         tracing::debug!("executing instruction '{}'", instruction);
 
         match instruction {
             Instruction::AddRegister { v, value } => self.registers.vs[v] += value,
             Instruction::ClearScreen => display.clear(),
-            Instruction::Display { vx, vy, pixels } => self.display(display, vx, vy, pixels),
+            Instruction::Display { vx, vy, pixels } => {
+                self.display(memory, display, vx, vy, pixels)
+            }
             Instruction::Jump { address } => self.prog_counter = address,
             Instruction::MachineLanguageRoutine { .. } => {
                 tracing::info!("machine routine instruction not supported")
@@ -215,13 +217,44 @@ impl CPU {
 
         self.history.push(instruction);
     }
-    fn display(&mut self, display: &mut Display, vx: usize, vy: usize, pixels: u8) {
-        let x = self.registers.vs[vx] % WINDOW_PIXELS_HEIGHT;
-        let y = self.registers.vs[vy] % WINDOW_PIXELS_WIDTH;
+    fn display(
+        &mut self,
+        memory: &mut RAM,
+        display: &mut Display,
+        vx: usize,
+        vy: usize,
+        pixels: u8,
+    ) {
+        let mut x = self.registers.vs[vx] % WINDOW_PIXELS_WIDTH;
+        let mut y = self.registers.vs[vy] % WINDOW_PIXELS_HEIGHT;
 
         self.registers.set_f(0);
 
-        tracing::warn!("todo: finish display impl");
+        'rows: for i in 0..pixels {
+            let b = memory.read(self.registers.i + i as u16);
+            'cols: for j in 0..8 {
+                let px = b & (0x1 << (7 - j));
+                let idx = y as u16 * WINDOW_PIXELS_WIDTH as u16 + x as u16;
+
+                let px0 = display.read_pixel(idx);
+                display.write_pixel(idx, px0 ^ (px != 0));
+                if px0 && ((px != 0) ^ px0) {
+                    self.registers.set_f(1);
+                }
+
+                x += 1;
+                if x >= WINDOW_PIXELS_WIDTH {
+                    break 'cols;
+                }
+            }
+
+            y += 1;
+            if y >= WINDOW_PIXELS_HEIGHT {
+                break 'rows;
+            }
+
+            x = self.registers.vs[vx] % WINDOW_PIXELS_WIDTH;
+        }
     }
 }
 

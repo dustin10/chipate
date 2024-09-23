@@ -4,9 +4,11 @@ pub const WINDOW_PIXELS_WIDTH: u8 = 64;
 
 pub const WINDOW_PIXELS_HEIGHT: u8 = 32;
 
+const NUM_PIXELS: usize = 64 * 32;
+
 #[derive(Clone, Debug)]
 pub struct Display {
-    pixels: [u8; 256],
+    pixels: [bool; NUM_PIXELS],
 }
 
 impl Display {
@@ -14,13 +16,21 @@ impl Display {
         Self::default()
     }
     pub fn clear(&mut self) {
-        self.pixels.fill(0);
+        self.pixels.fill(false);
+    }
+    pub fn read_pixel(&self, idx: u16) -> bool {
+        self.pixels[idx as usize]
+    }
+    pub fn write_pixel(&mut self, idx: u16, value: bool) {
+        self.pixels[idx as usize] = value;
     }
 }
 
 impl Default for Display {
     fn default() -> Self {
-        Self { pixels: [0; 256] }
+        Self {
+            pixels: [false; NUM_PIXELS],
+        }
     }
 }
 

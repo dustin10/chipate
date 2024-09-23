@@ -33,6 +33,27 @@ impl Stack {
     }
 }
 
+/*
+----
+TODO
+----
+
+8XY0: Set
+8XY1: Binary OR
+8XY2: Binary AND
+8XY3: Logical XOR
+8XY4: Add
+8XY5 and 8XY7: Subtract
+8XY6 and 8XYE: Shift
+EX9E and EXA1: Skip if key
+FX07, FX15 and FX18: Timers
+FX1E: Add to index
+FX0A: Get key
+FX29: Font character
+FX33: Binary-coded decimal conversion
+FX55 and FX65: Store and load memory
+*/
+
 #[derive(Clone, Debug)]
 enum Instruction {
     AddRegister { v: usize, value: u8 },

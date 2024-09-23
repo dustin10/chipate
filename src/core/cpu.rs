@@ -3,6 +3,8 @@ use crate::core::{
     memory::{self, RAM},
 };
 
+use rand::{rngs::ThreadRng, Rng};
+
 const PROGRAM_COUNTER_START: u16 = 0x200;
 
 #[derive(Clone, Debug, Default)]
@@ -38,6 +40,7 @@ enum Instruction {
     Display { vx: usize, vy: usize, pixels: u8 },
     Jump { address: u16 },
     MachineLanguageRoutine { address: u16 },
+    Random { v: usize, value: u8 },
     SetIndex { value: u16 },
     SetRegister { v: usize, value: u8 },
     SkipEqual { v: usize, value: u8 },
@@ -91,6 +94,10 @@ impl Instruction {
                 vy: y as usize,
             }),
             0xA000 => Some(Instruction::SetIndex { value: nnn }),
+            0xC000 => Some(Instruction::Random {
+                v: x as usize,
+                value: nn,
+            }),
             0xD000 => Some(Instruction::Display {
                 vx: x as usize,
                 vy: y as usize,
@@ -115,6 +122,7 @@ impl std::fmt::Display for Instruction {
             Instruction::MachineLanguageRoutine { address } => {
                 f.write_str(&format!("mlr {:#04x}", address))
             }
+            Instruction::Random { v, value } => f.write_str(&format!("rand v{} {:#04x}", v, value)),
             Instruction::SetIndex { value } => f.write_str(&format!("load l {:#04x}", value)),
             Instruction::SetRegister { v, value } => {
                 f.write_str(&format!("load v{} {:#04x}", v, value))
@@ -148,6 +156,7 @@ pub struct CPU {
     delay_timer: u8,
     sound_timer: u8,
     history: Vec<Instruction>,
+    rand_gen: ThreadRng,
 }
 
 impl CPU {
@@ -182,6 +191,9 @@ impl CPU {
             Instruction::Jump { address } => self.prog_counter = address,
             Instruction::MachineLanguageRoutine { .. } => {
                 tracing::info!("machine routine instruction not supported")
+            }
+            Instruction::Random { v, value } => {
+                self.registers.vs[v] = self.rand_gen.gen_range(0..value) & value
             }
             Instruction::SetIndex { value } => self.registers.i = value,
             Instruction::SetRegister { v, value } => self.registers.vs[v] = value,
@@ -267,6 +279,7 @@ impl Default for CPU {
             delay_timer: 0,
             sound_timer: 0,
             history: Vec::new(),
+            rand_gen: ThreadRng::default(),
         }
     }
 }

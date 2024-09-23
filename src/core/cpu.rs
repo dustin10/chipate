@@ -1,5 +1,9 @@
 use crate::core::memory::RAM;
 
+use std::fmt::Display;
+
+const PROGRAM_COUNTER_START: u16 = 0x0200;
+
 #[derive(Clone, Debug, Default)]
 struct Registers {
     vs: [u8; 16],
@@ -32,7 +36,16 @@ impl Instruction {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Instruction::ClearScreen => f.write_str("clear"),
+            Instruction::Jump => f.write_str("jump"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct CPU {
     registers: Registers,
     prog_counter: u16,
@@ -43,19 +56,13 @@ pub struct CPU {
 
 impl CPU {
     pub fn new() -> Self {
-        Self {
-            registers: Registers::default(),
-            prog_counter: 0,
-            stack: Stack::default(),
-            delay_timer: 0,
-            sound_timer: 0,
-        }
+        Self::default()
     }
     pub fn tick(&mut self, memory: &mut RAM) {
         let op_code = self.fetch(memory);
 
         match Instruction::from_op_code(op_code) {
-            None => tracing::warn!("enountered unknown op code: {:X?}", op_code),
+            None => tracing::warn!("enountered unknown op code: {:#04x}", op_code),
             Some(instruction) => self.execute(instruction),
         }
     }
@@ -69,5 +76,17 @@ impl CPU {
     }
     fn execute(&mut self, instruction: Instruction) {
         todo!()
+    }
+}
+
+impl Default for CPU {
+    fn default() -> Self {
+        Self {
+            registers: Registers::default(),
+            prog_counter: PROGRAM_COUNTER_START,
+            stack: Stack::default(),
+            delay_timer: 0,
+            sound_timer: 0,
+        }
     }
 }

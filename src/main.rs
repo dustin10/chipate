@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
         font: Font::default(),
     };
 
-    let program = Program::from_file(args.rom).context("failed to load program rom file")?;
+    let program = Program::from_file(args.rom).context("load program rom file")?;
 
     let mut emu = Emu::new(config);
     emu.load_program(program);

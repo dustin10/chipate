@@ -1,4 +1,4 @@
-use crate::core::memory::RAM;
+use crate::{core::memory::RAM, PROGRAM_START_ADDR};
 
 use anyhow::Context;
 use std::{fs::read, path::Path};
@@ -6,8 +6,6 @@ use std::{fs::read, path::Path};
 pub mod cpu;
 pub mod gfx;
 pub mod memory;
-
-const PROGRAM_START_ADDR: u16 = 0x200;
 
 #[derive(Clone, Debug)]
 pub struct Program {
@@ -17,15 +15,13 @@ pub struct Program {
 
 impl Program {
     pub fn new(name: String, data: Vec<u8>) -> Self {
-        Self {
-            name,
-            data
-        }
+        Self { name, data }
     }
     pub fn from_file(path: impl AsRef<Path>) -> anyhow::Result<Self> {
         tracing::debug!("loading program from path: {:?}", path.as_ref());
 
-        let name = path.as_ref()
+        let name = path
+            .as_ref()
             .file_name()
             .and_then(|s| s.to_str().map(String::from))
             .unwrap_or_else(|| String::from("Unknown"));

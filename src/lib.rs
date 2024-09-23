@@ -9,7 +9,9 @@ use crate::core::{
     Program,
 };
 
-use std::time::Instant;
+use std::time::{Duration, Instant};
+
+pub const PROGRAM_START_ADDR: u16 = 0x200;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -44,9 +46,18 @@ impl Emu {
         tracing::debug!("loaded {} program into memory", program.name);
     }
     pub fn run(&mut self) -> anyhow::Result<()> {
-        let mut curr_time = Instant::now();
+        let min_ms_per_tick = 1000_u128 / self.config.instructions_per_sec as u128;
 
-        self.cpu.tick(&mut self.memory);
+        let mut last_instant = Instant::now();
+
+        loop {
+            let elapsed = last_instant.elapsed();
+            if elapsed.as_millis() >= min_ms_per_tick {
+                self.cpu.tick(&mut self.memory);
+
+                last_instant = Instant::now();
+            }
+        }
 
         Ok(())
     }

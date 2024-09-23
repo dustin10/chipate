@@ -1,8 +1,8 @@
 use crate::core::memory::RAM;
 
-const WINDOW_PIXELS_WIDTH: u8 = 64;
+pub const WINDOW_PIXELS_WIDTH: u8 = 64;
 
-const WINDOW_PIXELS_HEIGHT: u8 = 32;
+pub const WINDOW_PIXELS_HEIGHT: u8 = 32;
 
 #[derive(Clone, Debug)]
 pub struct Display {
@@ -46,10 +46,7 @@ pub struct Font {
 
 impl Font {
     pub fn new(name: String, data: [u8; 80]) -> Self {
-        Self {
-            name,
-            data
-        }
+        Self { name, data }
     }
     pub fn load(&self, memory: &mut RAM) {
         memory.write_block(FONT_START_ADDR, &self.data);

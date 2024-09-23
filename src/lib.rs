@@ -53,7 +53,7 @@ impl Emu {
         loop {
             let elapsed = last_instant.elapsed();
             if elapsed.as_millis() >= min_ms_per_tick {
-                self.cpu.tick(&mut self.memory);
+                self.cpu.tick(&mut self.memory, &mut self.display);
 
                 last_instant = Instant::now();
             }

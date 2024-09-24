@@ -1,7 +1,7 @@
 use crate::{core::memory::RAM, PROGRAM_START_ADDR};
 
 use anyhow::Context;
-use std::{fs::read, path::Path};
+use std::path::Path;
 
 pub mod cpu;
 pub mod memory;
@@ -25,7 +25,8 @@ impl Program {
             .and_then(|s| s.to_str().map(String::from))
             .unwrap_or_else(|| String::from("Unknown"));
 
-        let data = std::fs::read(path)?;
+        let data = std::fs::read(path.as_ref())
+            .context(format!("read file {}", path.as_ref().to_string_lossy()))?;
 
         Ok(Self::new(name, data))
     }
@@ -34,9 +35,9 @@ impl Program {
     }
 }
 
-const FONT_GLYPH_WIDTH: u8 = 4;
+const _FONT_GLYPH_WIDTH: u8 = 4;
 
-const FONT_GLYPH_HEIGHT: u8 = 5;
+const _FONT_GLYPH_HEIGHT: u8 = 5;
 
 const FONT_START_ADDR: u16 = 0x050;
 

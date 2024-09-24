@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 pub mod core;
 
 use crate::core::{
@@ -8,7 +6,7 @@ use crate::core::{
     Font, Program,
 };
 
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 pub const PROGRAM_START_ADDR: u16 = 0x200;
 
@@ -79,7 +77,7 @@ impl Emu {
         program.load(&mut self.memory);
         tracing::debug!("loaded {} program into memory", program.name);
     }
-    pub fn run(&mut self) -> anyhow::Result<()> {
+    pub fn run(&mut self) {
         let min_ms_per_tick = 1000_u128 / self.config.instructions_per_sec as u128;
         let mut last_tick = Instant::now();
 
@@ -97,14 +95,13 @@ impl Emu {
             let timer_elapsed = last_timer.elapsed();
             if timer_elapsed.as_millis() >= min_ms_per_timer_dec {
                 self.cpu.dec_timers();
+                last_timer = Instant::now();
             }
         }
-
-        Ok(())
     }
 }
 
-fn print_display_state(display: &DisplayState) {
+fn _print_display_state(display: &DisplayState) {
     let mut grid = String::new();
     for r in 0..32 {
         grid.push('\n');

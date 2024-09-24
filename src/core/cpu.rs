@@ -1,7 +1,4 @@
-use crate::{
-    core::memory::{self, RAM},
-    DisplayState, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH,
-};
+use crate::{core::memory::RAM, DisplayState, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH};
 
 use rand::{rngs::ThreadRng, Rng};
 use std::collections::VecDeque;
@@ -104,7 +101,7 @@ impl Instruction {
         let y = (op_code & 0x00F0) >> 4;
         let n = op_code & 0x000F;
         let nn = (op_code & 0x00FF) as u8;
-        let nnn = (op_code & 0x0FFF);
+        let nnn = op_code & 0x0FFF;
 
         // match on first nibble and proceed from there
         match op_code & 0xF000 {
@@ -152,7 +149,7 @@ impl Instruction {
                     vx: x as usize,
                     vy: y as usize,
                 }),
-                0x4 => Some(Instruction::Xor {
+                0x4 => Some(Instruction::Add {
                     vx: x as usize,
                     vy: y as usize,
                 }),

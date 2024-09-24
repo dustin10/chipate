@@ -46,7 +46,5 @@ fn main() -> anyhow::Result<()> {
 
     let mut emu = Emu::new(config);
     emu.load_program(program);
-    emu.run();
-
-    Ok(())
+    emu.run()
 }

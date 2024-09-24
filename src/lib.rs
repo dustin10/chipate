@@ -1,5 +1,7 @@
 pub mod core;
 
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
+
 use crate::core::{
     cpu::{Mode, CPU},
     memory::RAM,
@@ -147,15 +149,75 @@ impl Emu {
         program.load(&mut self.memory);
         tracing::debug!("loaded {} program into memory", program.name);
     }
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> anyhow::Result<()> {
         let min_ms_per_tick = 1000_u128 / self.config.instructions_per_sec as u128;
         let mut last_tick = Instant::now();
 
         let min_ms_per_timer_dec = 1000_u128 / 60_u128;
         let mut last_timer = Instant::now();
 
-        loop {
-            // poll keyboard input
+        let sdl_context = match sdl2::init() {
+            Err(msg) => anyhow::bail!(msg),
+            Ok(ctx) => ctx,
+        };
+
+        let video_subsystem = match sdl_context.video() {
+            Err(msg) => anyhow::bail!(msg),
+            Ok(video_subsystem) => video_subsystem,
+        };
+
+        let window = match video_subsystem
+            .window("chipate", 640, 320)
+            .position_centered()
+            .build()
+        {
+            Err(msg) => anyhow::bail!(msg),
+            Ok(window) => window,
+        };
+
+        let mut canvas = match window.into_canvas().build() {
+            Err(msg) => anyhow::bail!(msg),
+            Ok(canvas) => canvas,
+        };
+
+        canvas.set_draw_color(Color::BLACK);
+
+        let mut event_pump = match sdl_context.event_pump() {
+            Err(msg) => anyhow::bail!(msg),
+            Ok(event_pump) => event_pump,
+        };
+
+        'main: loop {
+            canvas.clear();
+
+            for event in event_pump.poll_iter() {
+                match event {
+                    Event::KeyUp {
+                        keycode: Some(keycode),
+                        ..
+                    } => match keycode {
+                        Keycode::Escape => break 'main,
+                        Keycode::Num1 => self.keyboard.key_pressed(Key::Num1),
+                        Keycode::Num2 => self.keyboard.key_pressed(Key::Num2),
+                        Keycode::Num3 => self.keyboard.key_pressed(Key::Num3),
+                        Keycode::Num4 => self.keyboard.key_pressed(Key::Num4),
+                        Keycode::Q => self.keyboard.key_pressed(Key::Q),
+                        Keycode::W => self.keyboard.key_pressed(Key::W),
+                        Keycode::E => self.keyboard.key_pressed(Key::E),
+                        Keycode::R => self.keyboard.key_pressed(Key::R),
+                        Keycode::A => self.keyboard.key_pressed(Key::A),
+                        Keycode::S => self.keyboard.key_pressed(Key::S),
+                        Keycode::D => self.keyboard.key_pressed(Key::D),
+                        Keycode::F => self.keyboard.key_pressed(Key::F),
+                        Keycode::Z => self.keyboard.key_pressed(Key::Z),
+                        Keycode::X => self.keyboard.key_pressed(Key::X),
+                        Keycode::C => self.keyboard.key_pressed(Key::C),
+                        Keycode::V => self.keyboard.key_pressed(Key::V),
+                        _ => {}
+                    },
+                    _ => {}
+                }
+            }
 
             let tick_elapsed = last_tick.elapsed();
             if tick_elapsed.as_millis() >= min_ms_per_tick {
@@ -175,7 +237,15 @@ impl Emu {
                 self.cpu.dec_timers();
                 last_timer = Instant::now();
             }
+
+            // TODO: draw based on display state
+
+            canvas.present();
         }
+
+        tracing::debug!("exited main loop");
+
+        Ok(())
     }
 }
 

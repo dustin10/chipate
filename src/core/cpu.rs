@@ -70,7 +70,7 @@ enum Instruction {
     And { vx: usize, vy: usize },
     BcdConversion { v: usize },
     ClearScreen,
-    DelayTimerAdd { v: usize },
+    DelayTimerLoad { v: usize },
     DelayTimerSet { v: usize },
     Display { vx: usize, vy: usize, pixels: u8 },
     GetKey { v: usize },
@@ -190,7 +190,7 @@ impl Instruction {
                 pixels: n as u8,
             }),
             0xF000 => match nn {
-                0x07 => Some(Instruction::DelayTimerAdd { v: x as usize }),
+                0x07 => Some(Instruction::DelayTimerLoad { v: x as usize }),
                 0x0A => Some(Instruction::GetKey { v: x as usize }),
                 0x15 => Some(Instruction::DelayTimerSet { v: x as usize }),
                 0x18 => Some(Instruction::SoundTimerSet { v: x as usize }),
@@ -217,7 +217,7 @@ impl std::fmt::Display for Instruction {
             Instruction::And { vx, vy } => f.write_str(&format!("and v{} v{}", vx, vy)),
             Instruction::BcdConversion { v } => f.write_str(&format!("bcd_cnv v{}", v)),
             Instruction::ClearScreen => f.write_str("clear"),
-            Instruction::DelayTimerAdd { v } => f.write_str(&format!("delay_add v{}", v)),
+            Instruction::DelayTimerLoad { v } => f.write_str(&format!("delay_load v{}", v)),
             Instruction::DelayTimerSet { v } => f.write_str(&format!("delay_set v{}", v)),
             Instruction::Display { vx, vy, pixels } => {
                 f.write_str(&format!("disp v{} v{} {:#04x}", vx, vy, pixels))
@@ -347,7 +347,7 @@ impl CPU {
                 memory.write(self.registers.i + 2, value % 10);
             }
             Instruction::ClearScreen => display.clear(),
-            Instruction::DelayTimerAdd { v } => self.delay_timer += self.registers.vs[v],
+            Instruction::DelayTimerLoad { v } => self.delay_timer = self.registers.vs[v],
             Instruction::DelayTimerSet { v } => self.delay_timer = self.registers.vs[v],
             Instruction::Display { vx, vy, pixels } => {
                 self.display(memory, display, vx, vy, pixels)

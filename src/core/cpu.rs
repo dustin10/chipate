@@ -1,4 +1,6 @@
-use crate::{core::memory::RAM, DisplayState, Font, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH};
+use crate::{
+    core::memory::RAM, DisplayState, Font, KeyState, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH,
+};
 
 use rand::{rngs::ThreadRng, Rng};
 use std::collections::VecDeque;
@@ -71,6 +73,7 @@ enum Instruction {
     DelayTimerAdd { v: usize },
     DelayTimerSet { v: usize },
     Display { vx: usize, vy: usize, pixels: u8 },
+    GetKey { v: usize },
     Jump { address: u16 },
     Load { n: usize },
     LoadFontChar { v: usize },
@@ -188,6 +191,7 @@ impl Instruction {
             }),
             0xF000 => match nn {
                 0x07 => Some(Instruction::DelayTimerAdd { v: x as usize }),
+                0x0A => Some(Instruction::GetKey { v: x as usize }),
                 0x15 => Some(Instruction::DelayTimerSet { v: x as usize }),
                 0x18 => Some(Instruction::SoundTimerSet { v: x as usize }),
                 0x1E => Some(Instruction::AddIndex { v: x as usize }),
@@ -218,6 +222,7 @@ impl std::fmt::Display for Instruction {
             Instruction::Display { vx, vy, pixels } => {
                 f.write_str(&format!("disp v{} v{} {:#04x}", vx, vy, pixels))
             }
+            Instruction::GetKey { v } => f.write_str(&format!("get_key v{}", v)),
             Instruction::Jump { address } => f.write_str(&format!("jump {:#04x}", address)),
             Instruction::Load { n } => f.write_str(&format!("load {}", n)),
             Instruction::LoadFontChar { v } => f.write_str(&format!("load_font_ch v{}", v)),
@@ -272,12 +277,18 @@ impl CPU {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn tick(&mut self, memory: &mut RAM, display: &mut DisplayState, font: &Font) {
+    pub fn tick(
+        &mut self,
+        memory: &mut RAM,
+        display: &mut DisplayState,
+        font: &Font,
+        keyboard: &KeyState,
+    ) {
         let op_code = self.fetch(memory);
 
         match Instruction::from_op_code(op_code) {
             None => tracing::warn!("unknown op code: {:#04x}", op_code),
-            Some(instruction) => self.execute(instruction, memory, display, font),
+            Some(instruction) => self.execute(instruction, memory, display, font, keyboard),
         }
     }
     pub fn dec_timers(&mut self) {
@@ -303,6 +314,7 @@ impl CPU {
         memory: &mut RAM,
         display: &mut DisplayState,
         font: &Font,
+        keyboard: &KeyState,
     ) {
         tracing::debug!("executing instruction '{}'", instruction);
 
@@ -339,6 +351,13 @@ impl CPU {
             Instruction::DelayTimerSet { v } => self.delay_timer = self.registers.vs[v],
             Instruction::Display { vx, vy, pixels } => {
                 self.display(memory, display, vx, vy, pixels)
+            }
+            Instruction::GetKey { v } => {
+                if let Some(key) = keyboard.get_pressed_key() {
+                    self.registers.vs[v] = key;
+                } else {
+                    self.prog_counter -= 2;
+                }
             }
             Instruction::Jump { address } => self.prog_counter = address,
             Instruction::Load { n } => match self.mode {

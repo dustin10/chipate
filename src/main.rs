@@ -1,6 +1,6 @@
 use anyhow::Context;
 use chipate::{
-    core::{gfx::Font, Program},
+    core::{cpu::Mode, gfx::Font, Program},
     Config, Emu,
 };
 use clap::Parser;
@@ -10,6 +10,8 @@ use tracing_subscriber::EnvFilter;
 #[derive(Parser, Debug)]
 #[command()]
 struct Args {
+    #[arg(short, long)]
+    mode: Option<Mode>,
     #[arg(short, long)]
     rom: String,
     #[arg(short, long, default_value_t = 700)]
@@ -35,6 +37,7 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
     let config = Config {
+        mode: args.mode.unwrap_or_default(),
         instructions_per_sec: args.instructions_per_second,
         font: Font::default(),
     };

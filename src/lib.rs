@@ -3,7 +3,7 @@
 pub mod core;
 
 use crate::core::{
-    cpu::CPU,
+    cpu::{Mode, CPU},
     gfx::{Display, Font},
     memory::RAM,
     Program,
@@ -15,6 +15,7 @@ pub const PROGRAM_START_ADDR: u16 = 0x200;
 
 #[derive(Clone, Debug)]
 pub struct Config {
+    pub mode: Mode,
     pub instructions_per_sec: u16,
     pub font: Font,
 }
@@ -47,17 +48,24 @@ impl Emu {
     }
     pub fn run(&mut self) -> anyhow::Result<()> {
         let min_ms_per_tick = 1000_u128 / self.config.instructions_per_sec as u128;
+        let min_ms_per_timer_dec = 1000_u128 / 60_u128;
 
-        let mut last_instant = Instant::now();
+        let mut last_tick = Instant::now();
+        let mut last_timer = Instant::now();
 
         loop {
-            let elapsed = last_instant.elapsed();
-            if elapsed.as_millis() >= min_ms_per_tick {
+            let tick_elapsed = last_tick.elapsed();
+            if tick_elapsed.as_millis() >= min_ms_per_tick {
                 self.cpu.tick(&mut self.memory, &mut self.display);
 
-                last_instant = Instant::now();
+                last_tick = Instant::now();
 
-                print_display_state(&self.display);
+                //print_display_state(&self.display);
+            }
+
+            let timer_elapsed = last_timer.elapsed();
+            if timer_elapsed.as_millis() >= min_ms_per_timer_dec {
+                self.cpu.dec_timers();
             }
         }
 

@@ -48,9 +48,9 @@ impl Emu {
     }
     pub fn run(&mut self) -> anyhow::Result<()> {
         let min_ms_per_tick = 1000_u128 / self.config.instructions_per_sec as u128;
-        let min_ms_per_timer_dec = 1000_u128 / 60_u128;
-
         let mut last_tick = Instant::now();
+
+        let min_ms_per_timer_dec = 1000_u128 / 60_u128;
         let mut last_timer = Instant::now();
 
         loop {
@@ -59,8 +59,6 @@ impl Emu {
                 self.cpu.tick(&mut self.memory, &mut self.display);
 
                 last_tick = Instant::now();
-
-                //print_display_state(&self.display);
             }
 
             let timer_elapsed = last_timer.elapsed();

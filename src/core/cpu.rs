@@ -441,13 +441,14 @@ impl CPU {
 
         'rows: for i in 0..pixels {
             let b = memory.read(self.registers.i + i as u16);
+
             'cols: for j in 0..8 {
                 let px = b & (0x1 << (7 - j));
                 let idx = y as u16 * WINDOW_PIXELS_WIDTH as u16 + x as u16;
 
-                let px0 = display.read_pixel(idx);
-                display.write_pixel(idx, px0 ^ (px != 0));
-                if px0 && ((px != 0) ^ px0) {
+                let px_current = display.read_pixel(idx);
+                display.write_pixel(idx, px_current ^ (px != 0));
+                if px_current && ((px != 0) ^ px_current) {
                     self.registers.set_f(1);
                 }
 

@@ -58,9 +58,6 @@ impl Default for Mode {
 /*
 EX9E and EXA1: Skip if key
 FX0A: Get key
-FX29: Font character
-FX33: Binary-coded decimal conversion
-FX55 and FX65: Store and load memory
 */
 
 #[derive(Clone, Debug)]
@@ -69,11 +66,13 @@ enum Instruction {
     AddIndex { v: usize },
     AddRegister { v: usize, value: u8 },
     And { vx: usize, vy: usize },
+    BcdConversion { v: usize },
     ClearScreen,
     DelayTimerAdd { v: usize },
     DelayTimerSet { v: usize },
     Display { vx: usize, vy: usize, pixels: u8 },
     Jump { address: u16 },
+    Load { n: usize },
     LoadFontChar { v: usize },
     MachineLanguageRoutine { address: u16 },
     Or { vx: usize, vy: usize },
@@ -88,6 +87,7 @@ enum Instruction {
     SkipNotEqual { v: usize, value: u8 },
     SkipNotEqualReg { vx: usize, vy: usize },
     SoundTimerSet { v: usize },
+    Store { n: usize },
     Subtract { vx: usize, vy: usize },
     SubtractRev { vx: usize, vy: usize },
     SubroutineCall { address: u16 },
@@ -192,6 +192,9 @@ impl Instruction {
                 0x18 => Some(Instruction::SoundTimerSet { v: x as usize }),
                 0x1E => Some(Instruction::AddIndex { v: x as usize }),
                 0x29 => Some(Instruction::LoadFontChar { v: x as usize }),
+                0x33 => Some(Instruction::BcdConversion { v: x as usize }),
+                0x55 => Some(Instruction::Store { n: x as usize }),
+                0x65 => Some(Instruction::Load { n: x as usize }),
                 _ => None,
             },
             _ => None,
@@ -208,6 +211,7 @@ impl std::fmt::Display for Instruction {
                 f.write_str(&format!("add v{} {:#04x}", v, value))
             }
             Instruction::And { vx, vy } => f.write_str(&format!("and v{} v{}", vx, vy)),
+            Instruction::BcdConversion { v } => f.write_str(&format!("bcd_cnv v{}", v)),
             Instruction::ClearScreen => f.write_str("clear"),
             Instruction::DelayTimerAdd { v } => f.write_str(&format!("delay_add v{}", v)),
             Instruction::DelayTimerSet { v } => f.write_str(&format!("delay_set v{}", v)),
@@ -215,6 +219,7 @@ impl std::fmt::Display for Instruction {
                 f.write_str(&format!("disp v{} v{} {:#04x}", vx, vy, pixels))
             }
             Instruction::Jump { address } => f.write_str(&format!("jump {:#04x}", address)),
+            Instruction::Load { n } => f.write_str(&format!("load {}", n)),
             Instruction::LoadFontChar { v } => f.write_str(&format!("load_font_ch v{}", v)),
             Instruction::MachineLanguageRoutine { address } => {
                 f.write_str(&format!("mlr {:#04x}", address))
@@ -239,6 +244,7 @@ impl std::fmt::Display for Instruction {
                 f.write_str(&format!("skip_neq_reg v{} v{}", vx, vy))
             }
             Instruction::SoundTimerSet { v } => f.write_str(&format!("sound_set v{}", v)),
+            Instruction::Store { n } => f.write_str(&format!("store {}", n)),
             Instruction::Subtract { vx, vy } => f.write_str(&format!("sub v{} v{}", vx, vy)),
             Instruction::SubtractRev { vx, vy } => f.write_str(&format!("sub_rev v{} v{}", vx, vy)),
             Instruction::SubroutineCall { address } => {
@@ -321,6 +327,13 @@ impl CPU {
             }
             Instruction::AddRegister { v, value } => self.registers.vs[v] += value,
             Instruction::And { vx, vy } => self.registers.vs[vx] &= self.registers.vs[vy],
+            Instruction::BcdConversion { v } => {
+                let value = self.registers.vs[v];
+
+                memory.write(self.registers.i, value / 100);
+                memory.write(self.registers.i + 1, (value % 100) / 10);
+                memory.write(self.registers.i + 2, value % 10);
+            }
             Instruction::ClearScreen => display.clear(),
             Instruction::DelayTimerAdd { v } => self.delay_timer += self.registers.vs[v],
             Instruction::DelayTimerSet { v } => self.delay_timer = self.registers.vs[v],
@@ -328,6 +341,19 @@ impl CPU {
                 self.display(memory, display, vx, vy, pixels)
             }
             Instruction::Jump { address } => self.prog_counter = address,
+            Instruction::Load { n } => match self.mode {
+                Mode::Classic => {
+                    for i in 0..=n {
+                        self.registers.vs[i] = memory.read(self.registers.i);
+                        self.registers.i += 1;
+                    }
+                }
+                Mode::Modern => {
+                    for i in 0..=n {
+                        self.registers.vs[i] = memory.read(self.registers.i + i as u16);
+                    }
+                }
+            },
             Instruction::LoadFontChar { v } => {
                 let char = self.registers.vs[v];
                 self.registers.i = font.char_addr(char);
@@ -395,6 +421,19 @@ impl CPU {
                 }
             }
             Instruction::SoundTimerSet { v } => self.sound_timer = self.registers.vs[v],
+            Instruction::Store { n } => match self.mode {
+                Mode::Classic => {
+                    for i in 0..=n {
+                        memory.write(self.registers.i, self.registers.vs[i]);
+                        self.registers.i += 1;
+                    }
+                }
+                Mode::Modern => {
+                    for i in 0..=n {
+                        memory.write(self.registers.i + i as u16, self.registers.vs[i]);
+                    }
+                }
+            },
             Instruction::Subtract { vx, vy } => {
                 let minuend = self.registers.vs[vx];
                 let subtrahend = self.registers.vs[vy];

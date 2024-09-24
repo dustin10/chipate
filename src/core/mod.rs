@@ -35,10 +35,6 @@ impl Program {
     }
 }
 
-const _FONT_GLYPH_WIDTH: u8 = 4;
-
-const _FONT_GLYPH_HEIGHT: u8 = 5;
-
 const FONT_START_ADDR: u16 = 0x050;
 
 const DEFAULT_FONT_DATA: [u8; 80] = [
@@ -61,6 +57,9 @@ impl Font {
     }
     pub fn load(&self, memory: &mut RAM) {
         memory.write_block(FONT_START_ADDR, &self.data);
+    }
+    pub fn char_addr(&self, char: u8) -> u16 {
+        FONT_START_ADDR + (5 * char as u16)
     }
 }
 

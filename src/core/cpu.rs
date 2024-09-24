@@ -1,4 +1,4 @@
-use crate::{core::memory::RAM, DisplayState, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH};
+use crate::{core::memory::RAM, DisplayState, Font, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH};
 
 use rand::{rngs::ThreadRng, Rng};
 use std::collections::VecDeque;
@@ -74,6 +74,7 @@ enum Instruction {
     DelayTimerSet { v: usize },
     Display { vx: usize, vy: usize, pixels: u8 },
     Jump { address: u16 },
+    LoadFontChar { v: usize },
     MachineLanguageRoutine { address: u16 },
     Or { vx: usize, vy: usize },
     Random { v: usize, value: u8 },
@@ -190,6 +191,7 @@ impl Instruction {
                 0x15 => Some(Instruction::DelayTimerSet { v: x as usize }),
                 0x18 => Some(Instruction::SoundTimerSet { v: x as usize }),
                 0x1E => Some(Instruction::AddIndex { v: x as usize }),
+                0x29 => Some(Instruction::LoadFontChar { v: x as usize }),
                 _ => None,
             },
             _ => None,
@@ -213,6 +215,7 @@ impl std::fmt::Display for Instruction {
                 f.write_str(&format!("disp v{} v{} {:#04x}", vx, vy, pixels))
             }
             Instruction::Jump { address } => f.write_str(&format!("jump {:#04x}", address)),
+            Instruction::LoadFontChar { v } => f.write_str(&format!("load_font_ch v{}", v)),
             Instruction::MachineLanguageRoutine { address } => {
                 f.write_str(&format!("mlr {:#04x}", address))
             }
@@ -263,12 +266,12 @@ impl CPU {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn tick(&mut self, memory: &mut RAM, display: &mut DisplayState) {
+    pub fn tick(&mut self, memory: &mut RAM, display: &mut DisplayState, font: &Font) {
         let op_code = self.fetch(memory);
 
         match Instruction::from_op_code(op_code) {
             None => tracing::warn!("unknown op code: {:#04x}", op_code),
-            Some(instruction) => self.execute(instruction, memory, display),
+            Some(instruction) => self.execute(instruction, memory, display, font),
         }
     }
     pub fn dec_timers(&mut self) {
@@ -288,7 +291,13 @@ impl CPU {
 
         (high << 8) | low
     }
-    fn execute(&mut self, instruction: Instruction, memory: &mut RAM, display: &mut DisplayState) {
+    fn execute(
+        &mut self,
+        instruction: Instruction,
+        memory: &mut RAM,
+        display: &mut DisplayState,
+        font: &Font,
+    ) {
         tracing::debug!("executing instruction '{}'", instruction);
 
         match instruction {
@@ -319,6 +328,10 @@ impl CPU {
                 self.display(memory, display, vx, vy, pixels)
             }
             Instruction::Jump { address } => self.prog_counter = address,
+            Instruction::LoadFontChar { v } => {
+                let char = self.registers.vs[v];
+                self.registers.i = font.char_addr(char);
+            }
             Instruction::MachineLanguageRoutine { .. } => {
                 tracing::info!("machine routine instruction not supported")
             }

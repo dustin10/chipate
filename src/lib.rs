@@ -87,7 +87,8 @@ impl Emu {
         loop {
             let tick_elapsed = last_tick.elapsed();
             if tick_elapsed.as_millis() >= min_ms_per_tick {
-                self.cpu.tick(&mut self.memory, &mut self.display);
+                self.cpu
+                    .tick(&mut self.memory, &mut self.display, &self.config.font);
 
                 last_tick = Instant::now();
             }

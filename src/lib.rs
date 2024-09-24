@@ -4,14 +4,19 @@ pub mod core;
 
 use crate::core::{
     cpu::{Mode, CPU},
-    gfx::{Display, Font},
     memory::RAM,
-    Program,
+    Font, Program,
 };
 
 use std::time::{Duration, Instant};
 
 pub const PROGRAM_START_ADDR: u16 = 0x200;
+
+pub const DISPLAY_PIXELS_WIDTH: u8 = 64;
+
+pub const DISPLAY_PIXELS_HEIGHT: u8 = 32;
+
+const NUM_PIXELS: usize = 64 * 32;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -21,11 +26,39 @@ pub struct Config {
 }
 
 #[derive(Clone, Debug)]
+pub struct DisplayState {
+    pixels: [bool; NUM_PIXELS],
+}
+
+impl DisplayState {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn clear(&mut self) {
+        self.pixels.fill(false);
+    }
+    pub fn read_pixel(&self, idx: u16) -> bool {
+        self.pixels[idx as usize]
+    }
+    pub fn write_pixel(&mut self, idx: u16, value: bool) {
+        self.pixels[idx as usize] = value;
+    }
+}
+
+impl Default for DisplayState {
+    fn default() -> Self {
+        Self {
+            pixels: [false; NUM_PIXELS],
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Emu {
     config: Config,
     cpu: CPU,
     memory: RAM,
-    display: Display,
+    display: DisplayState,
 }
 
 impl Emu {
@@ -39,7 +72,7 @@ impl Emu {
             config,
             cpu: CPU::default(),
             memory,
-            display: Display::new(),
+            display: DisplayState::new(),
         }
     }
     pub fn load_program(&mut self, program: Program) {
@@ -71,7 +104,7 @@ impl Emu {
     }
 }
 
-fn print_display_state(display: &Display) {
+fn print_display_state(display: &DisplayState) {
     let mut grid = String::new();
     for r in 0..32 {
         grid.push('\n');

@@ -1,6 +1,6 @@
 use anyhow::Context;
 use chipate::{
-    core::{cpu::Mode, gfx::Font, Program},
+    core::{cpu::Mode, Font, Program},
     Config, Emu,
 };
 use clap::Parser;

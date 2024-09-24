@@ -1,6 +1,6 @@
-use crate::core::{
-    gfx::{Display, WINDOW_PIXELS_HEIGHT, WINDOW_PIXELS_WIDTH},
-    memory::{self, RAM},
+use crate::{
+    core::memory::{self, RAM},
+    DisplayState, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH,
 };
 
 use rand::{rngs::ThreadRng, Rng};
@@ -266,7 +266,7 @@ impl CPU {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn tick(&mut self, memory: &mut RAM, display: &mut Display) {
+    pub fn tick(&mut self, memory: &mut RAM, display: &mut DisplayState) {
         let op_code = self.fetch(memory);
 
         match Instruction::from_op_code(op_code) {
@@ -291,7 +291,7 @@ impl CPU {
 
         (high << 8) | low
     }
-    fn execute(&mut self, instruction: Instruction, memory: &mut RAM, display: &mut Display) {
+    fn execute(&mut self, instruction: Instruction, memory: &mut RAM, display: &mut DisplayState) {
         tracing::debug!("executing instruction '{}'", instruction);
 
         match instruction {
@@ -429,13 +429,13 @@ impl CPU {
     fn display(
         &mut self,
         memory: &mut RAM,
-        display: &mut Display,
+        display: &mut DisplayState,
         vx: usize,
         vy: usize,
         pixels: u8,
     ) {
-        let mut x = self.registers.vs[vx] % WINDOW_PIXELS_WIDTH;
-        let mut y = self.registers.vs[vy] % WINDOW_PIXELS_HEIGHT;
+        let mut x = self.registers.vs[vx] % DISPLAY_PIXELS_WIDTH;
+        let mut y = self.registers.vs[vy] % DISPLAY_PIXELS_HEIGHT;
 
         self.registers.set_f(0);
 
@@ -444,7 +444,7 @@ impl CPU {
 
             'cols: for j in 0..8 {
                 let px = b & (0x1 << (7 - j));
-                let idx = y as u16 * WINDOW_PIXELS_WIDTH as u16 + x as u16;
+                let idx = y as u16 * DISPLAY_PIXELS_WIDTH as u16 + x as u16;
 
                 let px_current = display.read_pixel(idx);
                 display.write_pixel(idx, px_current ^ (px != 0));
@@ -453,17 +453,17 @@ impl CPU {
                 }
 
                 x += 1;
-                if x >= WINDOW_PIXELS_WIDTH {
+                if x >= DISPLAY_PIXELS_WIDTH {
                     break 'cols;
                 }
             }
 
             y += 1;
-            if y >= WINDOW_PIXELS_HEIGHT {
+            if y >= DISPLAY_PIXELS_HEIGHT {
                 break 'rows;
             }
 
-            x = self.registers.vs[vx] % WINDOW_PIXELS_WIDTH;
+            x = self.registers.vs[vx] % DISPLAY_PIXELS_WIDTH;
         }
     }
 }

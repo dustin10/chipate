@@ -58,10 +58,6 @@ impl Default for Mode {
     }
 }
 
-/*
-EX9E and EXA1: Skip if key
-*/
-
 #[derive(Clone, Debug)]
 enum Instruction {
     Add { vx: usize, vy: usize },
@@ -349,7 +345,10 @@ impl CPU {
                     self.registers.set_f(1);
                 }
             }
-            Instruction::AddRegister { v, value } => self.registers.vs[v] += value,
+            Instruction::AddRegister { v, value } => {
+                let (result, _) = self.registers.vs[v].overflowing_add(value);
+                self.registers.vs[v] = result;
+            }
             Instruction::And { vx, vy } => self.registers.vs[vx] &= self.registers.vs[vy],
             Instruction::BcdConversion { v } => {
                 let value = self.registers.vs[v];
@@ -483,7 +482,11 @@ impl CPU {
                 let minuend = self.registers.vs[vx];
                 let subtrahend = self.registers.vs[vy];
 
-                self.registers.vs[vx] = minuend - subtrahend;
+                self.registers.vs[vx] = if minuend < subtrahend {
+                    0
+                } else {
+                    minuend - subtrahend
+                };
 
                 if minuend > subtrahend {
                     self.registers.set_f(1);

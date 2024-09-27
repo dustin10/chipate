@@ -219,14 +219,13 @@ impl Emu {
             Ok(canvas) => canvas,
         };
 
-        canvas.set_draw_color(Color::BLACK);
-
         let mut event_pump = match sdl_context.event_pump() {
             Err(msg) => anyhow::bail!(msg),
             Ok(event_pump) => event_pump,
         };
 
         'main: loop {
+            canvas.set_draw_color(Color::BLACK);
             canvas.clear();
 
             for event in event_pump.poll_iter() {
@@ -282,25 +281,21 @@ impl Emu {
                 last_timer = Instant::now();
             }
 
+            canvas.set_draw_color(Color::WHITE);
+
             for c in 0..DISPLAY_PIXELS_WIDTH {
                 for r in 0..DISPLAY_PIXELS_HEIGHT {
                     let idx = (r as i32 * DISPLAY_PIXELS_WIDTH as i32) + c as i32;
 
-                    let draw_color = if self.display.read_pixel(idx as u16) {
-                        Color::WHITE
-                    } else {
-                        Color::BLACK
-                    };
+                    if self.display.read_pixel(idx as u16) {
+                        // window is a factor of 10 larger than display state grid
+                        let x = (c as i32 % DISPLAY_PIXELS_WIDTH as i32) * 10;
+                        let y = (r as i32 % DISPLAY_PIXELS_HEIGHT as i32) * 10;
 
-                    canvas.set_draw_color(draw_color);
-
-                    // window is a factor of 10 larger than display state grid
-                    let x = (c as i32 % DISPLAY_PIXELS_WIDTH as i32) * 10;
-                    let y = (r as i32 % DISPLAY_PIXELS_HEIGHT as i32) * 10;
-
-                    let rect = Rect::new(x, y, 10, 10);
-                    if let Err(msg) = canvas.fill_rect(rect) {
-                        tracing::error!("fill rect error: {}", msg);
+                        let rect = Rect::new(x, y, 10, 10);
+                        if let Err(msg) = canvas.fill_rect(rect) {
+                            tracing::error!("fill rect error: {}", msg);
+                        }
                     }
                 }
             }

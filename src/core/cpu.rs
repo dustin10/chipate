@@ -498,7 +498,11 @@ impl CPU {
                 let minuend = self.registers.vs[vy];
                 let subtrahend = self.registers.vs[vx];
 
-                self.registers.vs[vx] = minuend - subtrahend;
+                self.registers.vs[vx] = if minuend < subtrahend {
+                    0
+                } else {
+                    minuend - subtrahend
+                };
 
                 if minuend > subtrahend {
                     self.registers.set_f(1);

@@ -482,13 +482,11 @@ impl CPU {
                 let minuend = self.registers.vs[vx];
                 let subtrahend = self.registers.vs[vy];
 
-                self.registers.vs[vx] = if minuend < subtrahend {
-                    0
-                } else {
-                    minuend - subtrahend
-                };
+                let (value, overflowed) = minuend.overflowing_sub(subtrahend);
 
-                if minuend > subtrahend {
+                self.registers.vs[vx] = value;
+
+                if !overflowed {
                     self.registers.set_f(1);
                 } else {
                     self.registers.set_f(0);
@@ -498,13 +496,11 @@ impl CPU {
                 let minuend = self.registers.vs[vy];
                 let subtrahend = self.registers.vs[vx];
 
-                self.registers.vs[vx] = if minuend < subtrahend {
-                    0
-                } else {
-                    minuend - subtrahend
-                };
+                let (value, overflowed) = minuend.overflowing_sub(subtrahend);
 
-                if minuend > subtrahend {
+                self.registers.vs[vx] = value;
+
+                if !overflowed {
                     self.registers.set_f(1);
                 } else {
                     self.registers.set_f(0);

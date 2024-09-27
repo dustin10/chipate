@@ -148,6 +148,8 @@ impl KeyState {
         self.keys[idx] = true;
     }
     pub fn is_key_pressed(&self, key: Key) -> bool {
+        tracing::debug!("checking for {:?} key press", key);
+
         let idx: usize = key.into();
 
         self.keys[idx]

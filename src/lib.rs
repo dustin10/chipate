@@ -1,13 +1,12 @@
 pub mod core;
 
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
-
 use crate::core::{
     cpu::{Mode, CPU},
     memory::RAM,
     Font, Program,
 };
 
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
 use std::time::Instant;
 
 pub const PROGRAM_START_ADDR: u16 = 0x200;
@@ -55,44 +54,77 @@ impl Default for DisplayState {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Key {
+    Num0,
     Num1,
     Num2,
     Num3,
-    C,
     Num4,
     Num5,
     Num6,
-    D,
     Num7,
     Num8,
     Num9,
-    E,
     A,
-    Num0,
     B,
+    C,
+    D,
+    E,
     F,
 }
 
 impl Key {
-    fn get_state_idx(&self) -> usize {
+    fn idx(&self) -> usize {
         match self {
+            Key::Num0 => 0x0,
             Key::Num1 => 0x1,
             Key::Num2 => 0x2,
             Key::Num3 => 0x3,
-            Key::C => 0xC,
             Key::Num4 => 0x4,
             Key::Num5 => 0x5,
             Key::Num6 => 0x6,
-            Key::D => 0xD,
             Key::Num7 => 0x7,
             Key::Num8 => 0x8,
             Key::Num9 => 0x9,
-            Key::E => 0xE,
             Key::A => 0xA,
-            Key::Num0 => 0x0,
             Key::B => 0xB,
+            Key::C => 0xC,
+            Key::D => 0xD,
+            Key::E => 0xE,
             Key::F => 0xF,
         }
+    }
+    fn from_idx(idx: usize) -> Self {
+        match idx {
+            0x0 => Key::Num0,
+            0x1 => Key::Num1,
+            0x2 => Key::Num2,
+            0x3 => Key::Num3,
+            0x4 => Key::Num4,
+            0x5 => Key::Num5,
+            0x6 => Key::Num6,
+            0x7 => Key::Num7,
+            0x8 => Key::Num8,
+            0x9 => Key::Num9,
+            0xA => Key::A,
+            0xB => Key::B,
+            0xC => Key::C,
+            0xD => Key::D,
+            0xE => Key::E,
+            0xF => Key::F,
+            _ => panic!("unknown Key index: {}", idx),
+        }
+    }
+}
+
+impl From<usize> for Key {
+    fn from(value: usize) -> Self {
+        Key::from_idx(value)
+    }
+}
+
+impl From<Key> for usize {
+    fn from(value: Key) -> Self {
+        value.idx()
     }
 }
 
@@ -111,12 +143,12 @@ impl KeyState {
     pub fn mark_key_pressed(&mut self, key: Key) {
         tracing::debug!("{:?} key pressed", key);
 
-        let idx = key.get_state_idx();
+        let idx = key.idx();
 
         self.keys[idx] = true;
     }
     pub fn is_key_pressed(&self, key: Key) -> bool {
-        let idx = key.get_state_idx();
+        let idx: usize = key.into();
 
         self.keys[idx]
     }
@@ -244,7 +276,7 @@ impl Emu {
                 self.cpu.dec_timers();
                 if self.cpu.is_sound_playable() {
                     // TODO: sdl2 audio instead of bell char
-                    print!("{}", '\u{7}');
+                    print!("\u{7}");
                 }
 
                 last_timer = Instant::now();
@@ -254,7 +286,7 @@ impl Emu {
                 for r in 0..DISPLAY_PIXELS_HEIGHT {
                     let idx = (r as i32 * DISPLAY_PIXELS_WIDTH as i32) + c as i32;
 
-                    let draw_color = if self.display.pixels[idx as usize] {
+                    let draw_color = if self.display.read_pixel(idx as u16) {
                         Color::WHITE
                     } else {
                         Color::BLACK
@@ -280,22 +312,4 @@ impl Emu {
 
         Ok(())
     }
-}
-
-fn _print_display_state(display: &DisplayState) {
-    let mut grid = String::new();
-    for r in 0..32 {
-        grid.push('\n');
-        for c in 0..64 {
-            let idx = r as u16 * 64 + c as u16;
-
-            let white = display.read_pixel(idx);
-            if white {
-                grid.push('\u{2588}');
-            } else {
-                grid.push(' ');
-            }
-        }
-    }
-    println!("{}", grid);
 }

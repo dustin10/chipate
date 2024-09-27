@@ -1,5 +1,6 @@
 use crate::{
-    core::memory::RAM, DisplayState, Font, KeyState, DISPLAY_PIXELS_HEIGHT, DISPLAY_PIXELS_WIDTH,
+    core::memory::RAM, DisplayState, Font, Key, KeyState, DISPLAY_PIXELS_HEIGHT,
+    DISPLAY_PIXELS_WIDTH,
 };
 
 use rand::{rngs::ThreadRng, Rng};
@@ -86,6 +87,8 @@ enum Instruction {
     ShiftRight { vx: usize, vy: usize },
     SkipEqual { v: usize, value: u8 },
     SkipEqualReg { vx: usize, vy: usize },
+    SkipIfKeyNotPressed { v: usize },
+    SkipIfKeyPressed { v: usize },
     SkipNotEqual { v: usize, value: u8 },
     SkipNotEqualReg { vx: usize, vy: usize },
     SoundTimerSet { v: usize },
@@ -188,6 +191,11 @@ impl Instruction {
                 vy: y as usize,
                 pixels: n as u8,
             }),
+            0xE000 => match nn {
+                0x9E => Some(Instruction::SkipIfKeyPressed { v: x as usize }),
+                0xA1 => Some(Instruction::SkipIfKeyNotPressed { v: x as usize }),
+                _ => None,
+            },
             0xF000 => match nn {
                 0x07 => Some(Instruction::DelayTimerLoad { v: x as usize }),
                 0x0A => Some(Instruction::GetKey { v: x as usize }),
@@ -241,6 +249,8 @@ impl std::fmt::Display for Instruction {
             Instruction::SkipEqualReg { vx, vy } => {
                 f.write_str(&format!("skip_eq_reg v{} v{}", vx, vy))
             }
+            Instruction::SkipIfKeyNotPressed { v } => f.write_str(&format!("skip_key v{}", v)),
+            Instruction::SkipIfKeyPressed { v } => f.write_str(&format!("skip_not_key v{}", v)),
             Instruction::SkipNotEqual { v, value } => {
                 f.write_str(&format!("skip_neq v{} {:#04x}", v, value))
             }
@@ -428,6 +438,20 @@ impl CPU {
             }
             Instruction::SkipEqualReg { vx, vy } => {
                 if self.registers.vs[vx] == self.registers.vs[vy] {
+                    self.prog_counter += 2;
+                }
+            }
+            Instruction::SkipIfKeyNotPressed { v } => {
+                let key = Key::from(v);
+
+                if !keyboard.is_key_pressed(key) {
+                    self.prog_counter += 2;
+                }
+            }
+            Instruction::SkipIfKeyPressed { v } => {
+                let key = Key::from(v);
+
+                if keyboard.is_key_pressed(key) {
                     self.prog_counter += 2;
                 }
             }

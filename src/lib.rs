@@ -1,6 +1,6 @@
 pub mod core;
 
-use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color, rect::Rect};
 
 use crate::core::{
     cpu::{Mode, CPU},
@@ -58,19 +58,19 @@ pub enum Key {
     Num1,
     Num2,
     Num3,
-    Num4,
-    Q,
-    W,
-    E,
-    R,
-    A,
-    S,
-    D,
-    F,
-    Z,
-    X,
     C,
-    V,
+    Num4,
+    Num5,
+    Num6,
+    D,
+    Num7,
+    Num8,
+    Num9,
+    E,
+    A,
+    Num0,
+    B,
+    F,
 }
 
 impl Key {
@@ -79,19 +79,19 @@ impl Key {
             Key::Num1 => 0x1,
             Key::Num2 => 0x2,
             Key::Num3 => 0x3,
-            Key::Num4 => 0xC,
-            Key::Q => 0x4,
-            Key::W => 0x5,
-            Key::E => 0x6,
-            Key::R => 0xD,
-            Key::A => 0x7,
-            Key::S => 0x8,
-            Key::D => 0x9,
-            Key::F => 0xE,
-            Key::Z => 0xA,
-            Key::X => 0x0,
-            Key::C => 0xB,
-            Key::V => 0xF,
+            Key::C => 0xC,
+            Key::Num4 => 0x4,
+            Key::Num5 => 0x5,
+            Key::Num6 => 0x6,
+            Key::D => 0xD,
+            Key::Num7 => 0x7,
+            Key::Num8 => 0x8,
+            Key::Num9 => 0x9,
+            Key::E => 0xE,
+            Key::A => 0xA,
+            Key::Num0 => 0x0,
+            Key::B => 0xB,
+            Key::F => 0xF,
         }
     }
 }
@@ -108,10 +108,17 @@ impl KeyState {
     pub fn reset(&mut self) {
         self.keys.fill(false);
     }
-    pub fn key_pressed(&mut self, key: Key) {
+    pub fn mark_key_pressed(&mut self, key: Key) {
+        tracing::debug!("{:?} key pressed", key);
+
         let idx = key.get_state_idx();
 
         self.keys[idx] = true;
+    }
+    pub fn is_key_pressed(&self, key: Key) -> bool {
+        let idx = key.get_state_idx();
+
+        self.keys[idx]
     }
     pub fn get_pressed_key(&self) -> Option<u8> {
         self.keys
@@ -197,22 +204,22 @@ impl Emu {
                         ..
                     } => match keycode {
                         Keycode::Escape => break 'main,
-                        Keycode::Num1 => self.keyboard.key_pressed(Key::Num1),
-                        Keycode::Num2 => self.keyboard.key_pressed(Key::Num2),
-                        Keycode::Num3 => self.keyboard.key_pressed(Key::Num3),
-                        Keycode::Num4 => self.keyboard.key_pressed(Key::Num4),
-                        Keycode::Q => self.keyboard.key_pressed(Key::Q),
-                        Keycode::W => self.keyboard.key_pressed(Key::W),
-                        Keycode::E => self.keyboard.key_pressed(Key::E),
-                        Keycode::R => self.keyboard.key_pressed(Key::R),
-                        Keycode::A => self.keyboard.key_pressed(Key::A),
-                        Keycode::S => self.keyboard.key_pressed(Key::S),
-                        Keycode::D => self.keyboard.key_pressed(Key::D),
-                        Keycode::F => self.keyboard.key_pressed(Key::F),
-                        Keycode::Z => self.keyboard.key_pressed(Key::Z),
-                        Keycode::X => self.keyboard.key_pressed(Key::X),
-                        Keycode::C => self.keyboard.key_pressed(Key::C),
-                        Keycode::V => self.keyboard.key_pressed(Key::V),
+                        Keycode::Num1 => self.keyboard.mark_key_pressed(Key::Num1),
+                        Keycode::Num2 => self.keyboard.mark_key_pressed(Key::Num2),
+                        Keycode::Num3 => self.keyboard.mark_key_pressed(Key::Num3),
+                        Keycode::Num4 => self.keyboard.mark_key_pressed(Key::C),
+                        Keycode::Q => self.keyboard.mark_key_pressed(Key::Num4),
+                        Keycode::W => self.keyboard.mark_key_pressed(Key::Num5),
+                        Keycode::E => self.keyboard.mark_key_pressed(Key::Num6),
+                        Keycode::R => self.keyboard.mark_key_pressed(Key::D),
+                        Keycode::A => self.keyboard.mark_key_pressed(Key::Num7),
+                        Keycode::S => self.keyboard.mark_key_pressed(Key::Num8),
+                        Keycode::D => self.keyboard.mark_key_pressed(Key::Num9),
+                        Keycode::F => self.keyboard.mark_key_pressed(Key::E),
+                        Keycode::Z => self.keyboard.mark_key_pressed(Key::A),
+                        Keycode::X => self.keyboard.mark_key_pressed(Key::Num0),
+                        Keycode::C => self.keyboard.mark_key_pressed(Key::B),
+                        Keycode::V => self.keyboard.mark_key_pressed(Key::F),
                         _ => {}
                     },
                     _ => {}
@@ -235,10 +242,36 @@ impl Emu {
             let timer_elapsed = last_timer.elapsed();
             if timer_elapsed.as_millis() >= min_ms_per_timer_dec {
                 self.cpu.dec_timers();
+                if self.cpu.is_sound_playable() {
+                    // TODO: sdl2 audio instead of bell char
+                    print!("{}", '\u{7}');
+                }
+
                 last_timer = Instant::now();
             }
 
-            // TODO: draw based on display state
+            for c in 0..DISPLAY_PIXELS_WIDTH {
+                for r in 0..DISPLAY_PIXELS_HEIGHT {
+                    let idx = (r as i32 * DISPLAY_PIXELS_WIDTH as i32) + c as i32;
+
+                    let draw_color = if self.display.pixels[idx as usize] {
+                        Color::WHITE
+                    } else {
+                        Color::BLACK
+                    };
+
+                    canvas.set_draw_color(draw_color);
+
+                    // window is a factor of 10 larger than display state grid
+                    let x = (c as i32 % DISPLAY_PIXELS_WIDTH as i32) * 10;
+                    let y = (r as i32 % DISPLAY_PIXELS_HEIGHT as i32) * 10;
+
+                    let rect = Rect::new(x, y, 10, 10);
+                    if let Err(msg) = canvas.fill_rect(rect) {
+                        tracing::error!("fill rect error: {}", msg);
+                    }
+                }
+            }
 
             canvas.present();
         }

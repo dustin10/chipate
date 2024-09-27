@@ -59,7 +59,6 @@ impl Default for Mode {
 
 /*
 EX9E and EXA1: Skip if key
-FX0A: Get key
 */
 
 #[derive(Clone, Debug)]
@@ -299,6 +298,9 @@ impl CPU {
         if self.sound_timer > 0 {
             self.sound_timer -= 1;
         }
+    }
+    pub fn is_sound_playable(&self) -> bool {
+        self.sound_timer > 0
     }
     fn fetch(&mut self, memory: &mut RAM) -> u16 {
         let high = memory.read(self.prog_counter) as u16;

@@ -128,6 +128,28 @@ impl From<Key> for usize {
     }
 }
 
+fn keycode_to_key(value: Keycode) -> Option<Key> {
+    match value {
+        Keycode::Num1 => Some(Key::Num1),
+        Keycode::Num2 => Some(Key::Num2),
+        Keycode::Num3 => Some(Key::Num3),
+        Keycode::Num4 => Some(Key::C),
+        Keycode::Q => Some(Key::Num4),
+        Keycode::W => Some(Key::Num5),
+        Keycode::E => Some(Key::Num6),
+        Keycode::R => Some(Key::D),
+        Keycode::A => Some(Key::Num7),
+        Keycode::S => Some(Key::Num8),
+        Keycode::D => Some(Key::Num9),
+        Keycode::F => Some(Key::E),
+        Keycode::Z => Some(Key::A),
+        Keycode::X => Some(Key::Num0),
+        Keycode::C => Some(Key::B),
+        Keycode::V => Some(Key::F),
+        _ => None,
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct KeyState {
     keys: [bool; 16],
@@ -140,12 +162,19 @@ impl KeyState {
     pub fn reset(&mut self) {
         self.keys.fill(false);
     }
-    pub fn mark_key_pressed(&mut self, key: Key) {
+    pub fn key_pressed(&mut self, key: Key) {
         tracing::debug!("{:?} key pressed", key);
 
         let idx = key.idx();
 
         self.keys[idx] = true;
+    }
+    pub fn key_released(&mut self, key: Key) {
+        tracing::debug!("{:?} key released", key);
+
+        let idx = key.idx();
+
+        self.keys[idx] = false;
     }
     pub fn is_key_pressed(&self, key: Key) -> bool {
         tracing::debug!("checking for {:?} key press", key);
@@ -154,6 +183,7 @@ impl KeyState {
 
         self.keys[idx]
     }
+    // TODO: this should return Option<Key> rather than Option<u8>
     pub fn get_pressed_key(&self) -> Option<u8> {
         self.keys
             .iter()
@@ -227,51 +257,6 @@ impl Emu {
         };
 
         'main: loop {
-            canvas.set_draw_color(Color::BLACK);
-            canvas.clear();
-
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::KeyUp {
-                        keycode: Some(keycode),
-                        ..
-                    } => match keycode {
-                        Keycode::Escape => break 'main,
-                        Keycode::Num1 => self.keyboard.mark_key_pressed(Key::Num1),
-                        Keycode::Num2 => self.keyboard.mark_key_pressed(Key::Num2),
-                        Keycode::Num3 => self.keyboard.mark_key_pressed(Key::Num3),
-                        Keycode::Num4 => self.keyboard.mark_key_pressed(Key::C),
-                        Keycode::Q => self.keyboard.mark_key_pressed(Key::Num4),
-                        Keycode::W => self.keyboard.mark_key_pressed(Key::Num5),
-                        Keycode::E => self.keyboard.mark_key_pressed(Key::Num6),
-                        Keycode::R => self.keyboard.mark_key_pressed(Key::D),
-                        Keycode::A => self.keyboard.mark_key_pressed(Key::Num7),
-                        Keycode::S => self.keyboard.mark_key_pressed(Key::Num8),
-                        Keycode::D => self.keyboard.mark_key_pressed(Key::Num9),
-                        Keycode::F => self.keyboard.mark_key_pressed(Key::E),
-                        Keycode::Z => self.keyboard.mark_key_pressed(Key::A),
-                        Keycode::X => self.keyboard.mark_key_pressed(Key::Num0),
-                        Keycode::C => self.keyboard.mark_key_pressed(Key::B),
-                        Keycode::V => self.keyboard.mark_key_pressed(Key::F),
-                        _ => {}
-                    },
-                    _ => {}
-                }
-            }
-
-            let tick_elapsed = last_tick.elapsed();
-            if tick_elapsed.as_millis() >= min_ms_per_tick {
-                self.cpu.tick(
-                    &mut self.memory,
-                    &mut self.display,
-                    &self.config.font,
-                    &self.keyboard,
-                );
-
-                last_tick = Instant::now();
-                self.keyboard.reset();
-            }
-
             let timer_elapsed = last_timer.elapsed();
             if timer_elapsed.as_millis() >= min_ms_per_timer_dec {
                 self.cpu.dec_timers();
@@ -283,6 +268,47 @@ impl Emu {
                 last_timer = Instant::now();
             }
 
+            let tick_elapsed = last_tick.elapsed();
+            if tick_elapsed.as_millis() >= min_ms_per_tick {
+                for event in event_pump.poll_iter() {
+                    match event {
+                        Event::KeyDown {
+                            keycode: Some(keycode),
+                            ..
+                        } => {
+                            if let Some(key) = keycode_to_key(keycode) {
+                                self.keyboard.key_pressed(key);
+                            }
+                        }
+                        Event::Quit { .. }
+                        | Event::KeyUp {
+                            keycode: Some(Keycode::Escape),
+                            ..
+                        } => break 'main,
+                        Event::KeyUp {
+                            keycode: Some(keycode),
+                            ..
+                        } => {
+                            if let Some(key) = keycode_to_key(keycode) {
+                                self.keyboard.key_released(key);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                self.cpu.tick(
+                    &mut self.memory,
+                    &mut self.display,
+                    &self.config.font,
+                    &self.keyboard,
+                );
+
+                last_tick = Instant::now();
+            }
+
+            canvas.set_draw_color(Color::BLACK);
+            canvas.clear();
             canvas.set_draw_color(Color::WHITE);
 
             for c in 0..DISPLAY_PIXELS_WIDTH {

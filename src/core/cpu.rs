@@ -393,7 +393,7 @@ impl CPU {
             }
             Instruction::Or { vx, vy } => self.registers.vs[vx] |= self.registers.vs[vy],
             Instruction::Random { v, value } => {
-                self.registers.vs[v] = self.rand_gen.gen_range(0..value) & value
+                self.registers.vs[v] = self.rand_gen.random_range(0..value) & value
             }
             Instruction::SetIndex { value } => self.registers.i = value,
             Instruction::Set { v, value } => self.registers.vs[v] = value,
